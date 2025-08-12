@@ -7,6 +7,8 @@ import { AuthModule } from './auth/auth.module';
 import { CuidadoresModule } from './cuidadores/cuidadores.module';
 import { ReservasModule } from './reservas/reservas.module';
 import { ClientesModule } from './clientes/clientes.module';
+import { PagosModule } from './pagos/pagos.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
 	imports: [
@@ -34,6 +36,8 @@ import { ClientesModule } from './clientes/clientes.module';
 		ClientesModule,
 		CuidadoresModule,
 		ReservasModule,
+		PagosModule,
+		ChatModule,
 	],
 	controllers: [AppController],
 	providers: [AppService],
