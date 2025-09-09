@@ -1,22 +1,28 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
-import { UserRole } from '../entities/usuario.entity';
+import { IsArray, IsNotEmpty, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import { CreateUsuarioDto } from '../../usuarios/dto/create-usuario.dto';
+import { CreatePersonaDto } from './../../personas/dto/create-persona.dto';
+import { CreateClienteDto } from '../../clientes/dto/create-cliente.dto';
+import { CreateCuidadorDto } from '../../cuidadores/dto/create-cuidador.dto';
 
 export class RegisterDto {
-	@IsNotEmpty()
-	@IsString()
-	nombre: string;
+	@ValidateNested()
+	@Type(() => CreateUsuarioDto)
+	usuario: CreateUsuarioDto;
+
+	@ValidateNested()
+	@Type(() => CreatePersonaDto)
+	persona: CreatePersonaDto;
+
+	@ValidateNested()
+	@Type(() => CreateClienteDto)
+	cliente: CreateClienteDto;
+
+	@ValidateNested()
+	@Type(() => CreateCuidadorDto)
+	cuidador: CreateCuidadorDto;
 
 	@IsNotEmpty()
-	@IsString()
-	apellido: string;
-
-	@IsEmail()
-	email: string;
-
-	@IsNotEmpty()
-	@MinLength(6)
-	password: string;
-
-	@IsNotEmpty()
-	role: UserRole.ADMIN | UserRole.CUIDADOR | UserRole.CLIENTE;
+	@IsArray()
+	rolesId: number[];
 }

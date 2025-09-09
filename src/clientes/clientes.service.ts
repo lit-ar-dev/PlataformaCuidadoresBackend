@@ -1,35 +1,29 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { Cliente } from './entities/cliente.entity';
 import { CreateClienteDto } from './dto/create-cliente.dto';
 import { UpdateClienteDto } from './dto/update-cliente.dto';
-import { AuthService } from '../auth/auth.service';
+import { Usuario } from 'src/usuarios/entities/usuario.entity';
 
 @Injectable()
 export class ClientesService {
 	constructor(
 		@InjectRepository(Cliente)
 		private readonly clienteRepository: Repository<Cliente>,
-		private readonly authService: AuthService,
 	) {}
 
-	async create(createClienteDto: CreateClienteDto): Promise<Cliente> {
-		const { domicilio, telefono } = createClienteDto;
-		const usuario = await this.authService.findOne(
-			createClienteDto.usuarioId,
-		);
-		if (!usuario) {
-			throw new NotFoundException(
-				`Usuario con id ${createClienteDto.usuarioId} no encontrado`,
-			);
-		}
-		const cliente = this.clienteRepository.create({
-			domicilio,
-			telefono,
-			usuario,
-		} as Cliente);
-		return this.clienteRepository.save(cliente);
+	async create(
+		createClienteDto: CreateClienteDto,
+		usuario: Usuario,
+		entity?: EntityManager,
+	): Promise<Cliente> {
+		const clienteRepository = entity
+			? entity.getRepository(Cliente)
+			: this.clienteRepository;
+		const cliente = clienteRepository.create(createClienteDto);
+		cliente.usuario = usuario;
+		return clienteRepository.save(cliente);
 	}
 
 	async findAll(): Promise<Cliente[]> {
@@ -52,6 +46,9 @@ export class ClientesService {
 		updateClienteDto: UpdateClienteDto,
 	): Promise<Cliente> {
 		const cliente = await this.findOne(id);
+		if (!cliente) {
+			throw new NotFoundException(`Cliente con id ${id} no encontrado`);
+		}
 		Object.assign(cliente, updateClienteDto);
 		return this.clienteRepository.save(cliente);
 	}

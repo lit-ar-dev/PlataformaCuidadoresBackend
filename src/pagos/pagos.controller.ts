@@ -10,10 +10,9 @@ import {
 } from '@nestjs/common';
 import { PagosService } from './pagos.service';
 import { CreatePreferenciaDto } from './dto/create-preferencia.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../auth/roles.guard';
-import { Roles } from '../auth/roles.decorator';
-import { UserRole } from '../auth/entities/usuario.entity';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import * as crypto from 'crypto';
 import { Response } from 'express';
 
@@ -22,7 +21,7 @@ export class PagosController {
 	constructor(private readonly pagosService: PagosService) {}
 
 	@Post('mp/crear-preferencia')
-	@Roles(UserRole.ADMIN, UserRole.CLIENTE)
+	@Roles('admin', 'cliente')
 	@UseGuards(JwtAuthGuard, RolesGuard)
 	async crearPreferencia(@Body() createDto: CreatePreferenciaDto) {
 		const preference = await this.pagosService.crearPreferencia(createDto);

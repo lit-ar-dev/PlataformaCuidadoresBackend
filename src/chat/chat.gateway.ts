@@ -9,7 +9,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
-import { CreateMessageDto } from './dto/create-message.dto';
+import { CreateMensajeDto } from './dto/create-mensaje.dto';
 
 @WebSocketGateway({ namespace: '/chat', cors: true })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -27,34 +27,34 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		console.log(`Cliente desconectado: ${client.id}`);
 	}
 
-	@SubscribeMessage('joinRoom')
-	async onJoinRoom(
-		@MessageBody() payload: { roomId: string },
+	@SubscribeMessage('joinSala')
+	async onJoinSala(
+		@MessageBody() payload: { salaId: string },
 		@ConnectedSocket() client: Socket,
 	) {
-		client.join(payload.roomId);
+		client.join(payload.salaId);
 		// opcional: notificar al resto
 		this.server
-			.to(payload.roomId)
+			.to(payload.salaId)
 			.emit('userJoined', { userId: client.id });
 	}
 
-	@SubscribeMessage('leaveRoom')
-	async onLeaveRoom(
-		@MessageBody() payload: { roomId: string },
+	@SubscribeMessage('leaveSala')
+	async onLeaveSala(
+		@MessageBody() payload: { salaId: string },
 		@ConnectedSocket() client: Socket,
 	) {
-		client.leave(payload.roomId);
+		client.leave(payload.salaId);
 	}
 
-	@SubscribeMessage('sendMessage')
-	async onSendMessage(
-		@MessageBody() dto: CreateMessageDto,
+	@SubscribeMessage('sendMensaje')
+	async onSendMensaje(
+		@MessageBody() dto: CreateMensajeDto,
 		@ConnectedSocket() client: Socket,
 	) {
 		// Persistir mensaje en BD
-		const message = await this.chatService.saveMessage(dto);
+		const message = await this.chatService.saveMensaje(dto);
 		// Emitir a todos en la sala
-		this.server.to(dto.roomId).emit('newMessage', message);
+		this.server.to(dto.salaId).emit('newMensaje', message);
 	}
 }

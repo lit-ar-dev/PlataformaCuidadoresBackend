@@ -1,18 +1,18 @@
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity('messages')
-export class MessageEntity {
+@Entity('mensajes')
+export class MensajeEntity {
 	@PrimaryGeneratedColumn('uuid')
 	id: string;
 
 	@Column()
-	roomId: string;
+	salaId: string;
 
 	@Column()
-	senderId: string;
+	remitenteId: string;
 
 	@Column('text')
-	text: string;
+	texto: string;
 
 	@Column({ type: 'timestamptz' })
 	timestamp: Date;

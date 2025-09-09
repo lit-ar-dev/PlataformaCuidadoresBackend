@@ -1,29 +1,31 @@
 import { Injectable } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MessageEntity } from './entities/message.entity';
-import { CreateMessageDto } from './dto/create-message.dto';
+import { MensajeEntity } from './entities/mensaje.entity';
+import { CreateMensajeDto } from './dto/create-mensaje.dto';
 
 @Injectable()
 export class ChatService {
 	constructor(
-		@InjectRepository(MessageEntity)
-		private readonly repo: Repository<MessageEntity>,
+		@InjectRepository(MensajeEntity)
+		private readonly mensajeRepository: Repository<MensajeEntity>,
 	) {}
 
-	async saveMessage(dto: CreateMessageDto): Promise<MessageEntity> {
-		const msg = this.repo.create({
-			roomId: dto.roomId,
-			senderId: dto.senderId,
-			text: dto.text,
-			timestamp: dto.timestamp ?? new Date(),
+	async saveMensaje(
+		createMensajeDto: CreateMensajeDto,
+	): Promise<MensajeEntity> {
+		const msg = this.mensajeRepository.create({
+			salaId: createMensajeDto.salaId,
+			remitenteId: createMensajeDto.remitenteId,
+			texto: createMensajeDto.texto,
+			timestamp: createMensajeDto.timestamp ?? new Date(),
 		});
-		return this.repo.save(msg);
+		return this.mensajeRepository.save(msg);
 	}
 
-	async getHistory(roomId: string): Promise<MessageEntity[]> {
-		return this.repo.find({
-			where: { roomId },
+	async getHistory(salaId: string): Promise<MensajeEntity[]> {
+		return this.mensajeRepository.find({
+			where: { salaId },
 			order: { timestamp: 'ASC' },
 		});
 	}

@@ -7,7 +7,7 @@ import {
 	JoinColumn,
 } from 'typeorm';
 import { Reserva } from '../../reservas/entities/reserva.entity';
-import { Usuario } from 'src/auth/entities/usuario.entity';
+import { Usuario } from 'src/usuarios/entities/usuario.entity';
 
 @Entity('clientes')
 export class Cliente {
@@ -17,10 +17,7 @@ export class Cliente {
 	@Column()
 	domicilio: string;
 
-	@Column({ nullable: true })
-	telefono: string;
-
-	@OneToMany(() => Reserva, (reserva) => reserva.cliente, { cascade: true })
+	@OneToMany(() => Reserva, (reserva) => reserva.cliente)
 	reservas: Reserva[];
 
 	@OneToOne(() => Usuario, (usuario) => usuario.cliente)

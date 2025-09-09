@@ -1,16 +1,23 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Usuario } from './entities/usuario.entity';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './jwt.strategy';
+import { Usuario } from 'src/usuarios/entities/usuario.entity';
+import { Rol } from './entities/rol.entity';
+import { UsuariosModule } from 'src/usuarios/usuarios.module';
+import { PersonasModule } from 'src/personas/personas.module';
+import { CuidadoresModule } from 'src/cuidadores/cuidadores.module';
+import { ClientesModule } from 'src/clientes/clientes.module';
+import { AbilityFactory } from './ability.factory';
+import { Permiso } from './entities/permiso.entity';
 
 @Module({
 	imports: [
-		TypeOrmModule.forFeature([Usuario]),
+		TypeOrmModule.forFeature([Usuario, Rol, Permiso]),
 		PassportModule,
 		JwtModule.registerAsync({
 			imports: [ConfigModule],
@@ -22,9 +29,13 @@ import { JwtStrategy } from './jwt.strategy';
 			}),
 			inject: [ConfigService],
 		}),
+		UsuariosModule,
+		PersonasModule,
+		forwardRef(() => CuidadoresModule),
+		ClientesModule,
 	],
-	providers: [AuthService, JwtStrategy],
+	providers: [AuthService, JwtStrategy, AbilityFactory],
 	controllers: [AuthController],
-	exports: [AuthService],
+	exports: [AuthService, AbilityFactory],
 })
 export class AuthModule {}

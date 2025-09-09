@@ -1,0 +1,91 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { CreateUsuarioDto } from './dto/create-usuario.dto';
+import { Usuario } from './entities/usuario.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { EntityManager, Repository } from 'typeorm';
+import { Persona } from 'src/personas/entities/persona.entity';
+import { Rol } from 'src/auth/entities/rol.entity';
+
+@Injectable()
+export class UsuariosService {
+	constructor(
+		@InjectRepository(Usuario)
+		private readonly usuarioRepository: Repository<Usuario>,
+	) {}
+
+	async create(
+		createUsuarioDto: CreateUsuarioDto,
+		persona: Persona,
+		roles: Rol[],
+		manager?: EntityManager,
+	): Promise<Usuario> {
+		const usuarioRepository = manager
+			? manager.getRepository(Usuario)
+			: this.usuarioRepository;
+		const { foto, ...restDto } = createUsuarioDto;
+		const usuario = usuarioRepository.create(restDto);
+		if (foto) {
+			usuario.foto = Buffer.from(foto, 'base64');
+		}
+		usuario.persona = persona;
+		usuario.roles = roles;
+		return usuarioRepository.save(usuario);
+	}
+
+	async findAll(): Promise<Usuario[]> {
+		return this.usuarioRepository.find({ relations: ['persona', 'roles'] });
+	}
+
+	async findOne(id: string): Promise<Usuario> {
+		const usuario = await this.usuarioRepository.findOne({
+			where: { id },
+			relations: ['persona', 'roles'],
+		});
+		if (!usuario) {
+			throw new NotFoundException(`Usuario con id ${id} no encontrado`);
+		}
+		return usuario;
+	}
+
+	async findOneWithRolesAndPerms(id: string): Promise<Usuario> {
+		const usuario = await this.usuarioRepository.findOne({
+			where: { id },
+			relations: ['roles', 'roles.permisos'],
+			select: {
+				id: true,
+				email: true,
+				roles: {
+					id: true,
+					nombre: true,
+					permisos: {
+						id: true,
+						nombre: true,
+					},
+				},
+			},
+		});
+		if (!usuario) {
+			throw new NotFoundException(`Usuario con id ${id} no encontrado`);
+		}
+		return usuario;
+	}
+
+	async update(
+		id: string,
+		updateUsuarioDto: Partial<CreateUsuarioDto>,
+	): Promise<Usuario> {
+		const usuario = await this.findOne(id);
+		if (!usuario) {
+			throw new NotFoundException(`Usuario con id ${id} no encontrado`);
+		}
+		Object.assign(usuario, updateUsuarioDto);
+		return this.usuarioRepository.save(usuario);
+	}
+
+	async remove(id: string): Promise<void> {
+		const result = await this.usuarioRepository.delete(id);
+		if (result.affected === 0) {
+			throw new NotFoundException(`Usuario con id ${id} no encontrado`);
+		}
+	}
+}

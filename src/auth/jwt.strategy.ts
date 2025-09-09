@@ -3,15 +3,14 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Usuario } from './entities/usuario.entity';
+import { Usuario } from 'src/usuarios/entities/usuario.entity';
+import { UsuariosService } from 'src/usuarios/usuarios.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
 	constructor(
 		private readonly configService: ConfigService,
-		@InjectRepository(Usuario)
-		private readonly usuarioRepository: Repository<Usuario>,
+		private readonly usuariosService: UsuariosService,
 	) {
 		const jwtSecret = configService.get<string>('JWT_SECRET');
 		if (!jwtSecret) {
@@ -27,12 +26,24 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 	}
 
 	async validate(payload: any) {
-		const usuario = await this.usuarioRepository.findOne({
-			where: { id: payload.sub },
-		});
+		const usuario = await this.usuariosService.findOneWithRolesAndPerms(
+			payload.sub,
+		);
 		if (!usuario) {
 			throw new UnauthorizedException('Token inválido');
 		}
-		return { id: usuario.id, email: usuario.email, role: usuario.role };
+
+		const roles = (usuario.roles ?? []).map((rol) => ({
+			nombre: rol.nombre,
+			permisos: (rol.permisos ?? []).map((permiso) => ({
+				nombre: permiso.nombre,
+			})),
+		}));
+
+		return {
+			id: usuario.id,
+			email: usuario.email,
+			roles: roles,
+		};
 	}
 }

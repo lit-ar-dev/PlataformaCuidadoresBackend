@@ -1,14 +1,7 @@
-import { IsNotEmpty, IsString, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateClienteDto {
 	@IsNotEmpty()
+	@IsString()
 	domicilio: string;
-
-	@IsOptional()
-	@IsString()
-	telefono?: string;
-
-	@IsNotEmpty()
-	@IsString()
-	usuarioId: string;
 }

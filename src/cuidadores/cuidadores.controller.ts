@@ -1,58 +1,52 @@
 import {
 	Controller,
 	Get,
-	Post,
-	Body,
 	Patch,
 	Param,
 	Delete,
 	UseGuards,
-	ValidationPipe,
 } from '@nestjs/common';
 import { CuidadoresService } from './cuidadores.service';
-import { CreateCuidadorDto } from './dto/create-cuidador.dto';
 import { UpdateCuidadorDto } from './dto/update-cuidador.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { Roles } from '../auth/roles.decorator';
-import { RolesGuard } from '../auth/roles.guard';
-import { UserRole } from '../auth/entities/usuario.entity';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Permisos } from 'src/auth/decorators/permisos.decorator';
+import { PermisosGuard } from 'src/auth/guards/permisos.guard';
 
 @Controller('cuidadores')
 export class CuidadoresController {
 	constructor(private readonly cuidadoresService: CuidadoresService) {}
 
-	@Post()
-	@UseGuards(JwtAuthGuard)
-	async create(
-		@Body(new ValidationPipe({ whitelist: true }))
-		createCuidadorDto: CreateCuidadorDto,
-	) {
-		return this.cuidadoresService.create(createCuidadorDto);
-	}
-
 	@Get()
+	@UseGuards(JwtAuthGuard, RolesGuard)
+	@Roles('admin')
 	async findAll() {
 		return this.cuidadoresService.findAll();
 	}
 
 	@Get(':id')
+	@UseGuards(JwtAuthGuard, PermisosGuard)
+	@Permisos('read', 'cuidador')
 	async findOne(@Param('id') id: string) {
+		// faltan validaciones
 		return this.cuidadoresService.findOne(id);
 	}
 
 	@Patch(':id')
-	@UseGuards(JwtAuthGuard)
+	@UseGuards(JwtAuthGuard, PermisosGuard)
+	@Permisos('update', 'cuidador')
 	async update(
 		@Param('id') id: string,
-		@Body(new ValidationPipe({ whitelist: true }))
 		updateCuidadorDto: UpdateCuidadorDto,
 	) {
+		// faltan validaciones
 		return this.cuidadoresService.update(id, updateCuidadorDto);
 	}
 
 	@Delete(':id')
 	@UseGuards(JwtAuthGuard, RolesGuard)
-	@Roles(UserRole.ADMIN)
+	@Roles('admin')
 	async remove(@Param('id') id: string) {
 		await this.cuidadoresService.remove(id);
 		return { message: `Cuidador ${id} eliminado` };

@@ -62,6 +62,9 @@ export class ReservasService {
 		updateReservaDto: UpdateReservaDto,
 	): Promise<Reserva> {
 		const reserva = await this.findOne(id);
+		if (!reserva) {
+			throw new NotFoundException(`Reserva con id ${id} no encontrada`);
+		}
 		Object.assign(reserva, updateReservaDto);
 		return this.reservaRepository.save(reserva);
 	}
