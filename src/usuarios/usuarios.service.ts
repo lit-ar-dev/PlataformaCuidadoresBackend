@@ -16,19 +16,22 @@ export class UsuariosService {
 	async create(
 		createUsuarioDto: CreateUsuarioDto,
 		persona: Persona,
-		roles: Rol[],
+		roles?: Rol[],
 		manager?: EntityManager,
 	): Promise<Usuario> {
 		const usuarioRepository = manager
 			? manager.getRepository(Usuario)
 			: this.usuarioRepository;
 		const { foto, ...restDto } = createUsuarioDto;
+		restDto.email = restDto.email.toLowerCase();
 		const usuario = usuarioRepository.create(restDto);
 		if (foto) {
 			usuario.foto = Buffer.from(foto, 'base64');
 		}
 		usuario.persona = persona;
-		usuario.roles = roles;
+		if (roles) {
+			usuario.roles = roles;
+		}
 		return usuarioRepository.save(usuario);
 	}
 
@@ -66,6 +69,19 @@ export class UsuariosService {
 		});
 		if (!usuario) {
 			throw new NotFoundException(`Usuario con id ${id} no encontrado`);
+		}
+		return usuario;
+	}
+
+	async findByEmail(email: string): Promise<Usuario | null> {
+		const usuario = await this.usuarioRepository.findOne({
+			where: { email },
+			relations: ['persona', 'roles'],
+		});
+		if (!usuario) {
+			throw new NotFoundException(
+				`Usuario con email ${email} no encontrado`,
+			);
 		}
 		return usuario;
 	}

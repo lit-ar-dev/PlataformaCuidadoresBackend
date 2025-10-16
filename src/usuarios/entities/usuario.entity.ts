@@ -22,8 +22,8 @@ export class Usuario {
 	@Column({ unique: true })
 	email: string;
 
-	@Column()
-	contraseña: string;
+	@Column({ type: 'varchar', nullable: true })
+	contraseña?: string | null;
 
 	@Column({ default: true })
 	activo: boolean;
@@ -51,6 +51,7 @@ export class Usuario {
 
 	@BeforeInsert()
 	async hashPassword() {
+		if (!this.contraseña) return;
 		const salt = await bcrypt.genSalt();
 		this.contraseña = await bcrypt.hash(this.contraseña, salt);
 	}

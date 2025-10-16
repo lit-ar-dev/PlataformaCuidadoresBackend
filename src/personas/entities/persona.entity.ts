@@ -20,11 +20,11 @@ export class Persona {
 	@Column()
 	apellido: string;
 
-	@Column()
-	fechaDeNacimiento: Date;
+	@Column({ type: 'date', nullable: true })
+	fechaDeNacimiento?: Date | null;
 
-	@Column()
-	telefono?: string;
+	@Column({ type: 'varchar', nullable: true })
+	telefono?: string | null;
 
 	@OneToOne(() => Usuario, (usuario) => usuario.persona)
 	usuario: Usuario;

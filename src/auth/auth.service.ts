@@ -19,9 +19,11 @@ import { Rol } from './entities/rol.entity';
 import { Permiso } from './entities/permiso.entity';
 import { CreateRolDto } from './dto/create-rol.dto';
 import { CreatePermisoDto } from './dto/create-permiso.dto';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class AuthService {
+	private otcStore = new Map<string, { token: string; expiresAt: number }>();
 	constructor(
 		private readonly dataSource: DataSource,
 		@InjectRepository(Rol)
@@ -61,6 +63,8 @@ export class AuthService {
 						),
 					).then((rs) => rs.filter((r): r is Rol => !!r));
 
+					roles.push((await this.findUsuarioRol()) as Rol);
+
 					const usuario = await this.usuariosService.create(
 						registerDto.usuario,
 						persona,
@@ -69,12 +73,14 @@ export class AuthService {
 					);
 
 					for (const rol of roles) {
+						console.log('Assigned role:', rol.nombre);
 						if (rol.nombre === 'cuidador') {
-							await this.cuidadoresService.create(
+							const prueba = await this.cuidadoresService.create(
 								registerDto.cuidador,
 								usuario,
 								manager,
 							);
+							console.log('Created cuidador profile:', prueba);
 						} else if (rol.nombre === 'cliente') {
 							await this.clientesService.create(
 								registerDto.cliente,
@@ -110,6 +116,7 @@ export class AuthService {
 			where: { email },
 		});
 		if (!usuario) return null;
+		if (!usuario.contraseña) return null;
 		const valid = await bcrypt.compare(contraseña, usuario.contraseña);
 		if (valid) return usuario;
 		return null;
@@ -131,6 +138,35 @@ export class AuthService {
 			where: { email },
 		});
 		return !!usuario;
+	}
+
+	isAllowedRedirect(redirectUri: string) {
+		// validate against allowlist env var
+		console.log(redirectUri);
+		const allowed = (process.env.FRONTEND_ALLOWLIST || '').split(',');
+		console.log(allowed);
+		return allowed.includes(redirectUri);
+	}
+
+	async createOneTimeCodeForToken(token: string) {
+		const otc = uuidv4();
+		const ttl =
+			parseInt(process.env.ONE_TIME_CODE_TTL_SEC || '60', 10) * 1000;
+		this.otcStore.set(otc, { token, expiresAt: Date.now() + ttl });
+		// schedule cleanup (prod -> use redis with TTL)
+		setTimeout(() => this.otcStore.delete(otc), ttl + 1000);
+		return otc;
+	}
+
+	async consumeOneTimeCode(otc: string) {
+		const entry = this.otcStore.get(otc);
+		if (!entry) return null;
+		if (Date.now() > entry.expiresAt) {
+			this.otcStore.delete(otc);
+			return null;
+		}
+		this.otcStore.delete(otc);
+		return entry.token;
 	}
 
 	async createRol(createRolDto: CreateRolDto): Promise<Rol> {
@@ -155,10 +191,19 @@ export class AuthService {
 		return this.permisoRepository.save(permiso);
 	}
 
-	async findAllRolesExceptAdmin(): Promise<Rol[]> {
+	async findAllRolesExceptAdminUser(): Promise<Rol[]> {
 		return this.rolRepository.find({
-			where: { nombre: Not(In(['Admin', 'admin'])) },
+			where: {
+				nombre: Not(In(['Admin', 'admin', 'Usuario', 'usuario'])),
+			},
 		});
+	}
+
+	async findUsuarioRol(): Promise<Rol | null> {
+		const rol = await this.rolRepository.findOne({
+			where: { nombre: 'usuario' },
+		});
+		return rol;
 	}
 
 	async findAllPermisos(): Promise<Permiso[]> {

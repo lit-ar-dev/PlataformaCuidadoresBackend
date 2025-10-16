@@ -14,6 +14,7 @@ import { CuidadoresModule } from 'src/cuidadores/cuidadores.module';
 import { ClientesModule } from 'src/clientes/clientes.module';
 import { AbilityFactory } from './ability.factory';
 import { Permiso } from './entities/permiso.entity';
+import { GoogleAuthService } from './google-auth-service';
 
 @Module({
 	imports: [
@@ -33,8 +34,9 @@ import { Permiso } from './entities/permiso.entity';
 		PersonasModule,
 		forwardRef(() => CuidadoresModule),
 		ClientesModule,
+		ConfigModule,
 	],
-	providers: [AuthService, JwtStrategy, AbilityFactory],
+	providers: [AuthService, JwtStrategy, AbilityFactory, GoogleAuthService],
 	controllers: [AuthController],
 	exports: [AuthService, AbilityFactory],
 })
