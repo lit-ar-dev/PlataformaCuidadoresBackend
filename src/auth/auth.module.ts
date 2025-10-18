@@ -22,12 +22,21 @@ import { GoogleAuthService } from './google-auth-service';
 		PassportModule,
 		JwtModule.registerAsync({
 			imports: [ConfigModule],
-			useFactory: (configService: ConfigService) => ({
-				secret: configService.get<string>('JWT_SECRET'),
-				signOptions: {
-					expiresIn: configService.get<string>('JWT_EXPIRES_IN'),
-				},
-			}),
+			useFactory: (configService: ConfigService) => {
+				const secret = configService.get<string>('JWT_SECRET');
+				const expiresEnv = configService.get<string>('JWT_EXPIRES_IN');
+				const expiresIn = Number.parseInt(expiresEnv ?? '3600', 10);
+
+				return {
+					secret,
+					signOptions: {
+						expiresIn:
+							Number.isFinite(expiresIn) && expiresIn > 0
+								? expiresIn
+								: 3600,
+					},
+				};
+			},
 			inject: [ConfigService],
 		}),
 		UsuariosModule,

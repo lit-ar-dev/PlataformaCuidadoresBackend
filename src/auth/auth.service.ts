@@ -73,15 +73,13 @@ export class AuthService {
 					);
 
 					for (const rol of roles) {
-						console.log('Assigned role:', rol.nombre);
-						if (rol.nombre === 'cuidador') {
+						if (rol.nombre.toLowerCase() === 'cuidador') {
 							const prueba = await this.cuidadoresService.create(
 								registerDto.cuidador,
 								usuario,
 								manager,
 							);
-							console.log('Created cuidador profile:', prueba);
-						} else if (rol.nombre === 'cliente') {
+						} else if (rol.nombre.toLowerCase() === 'cliente') {
 							await this.clientesService.create(
 								registerDto.cliente,
 								usuario,
@@ -191,7 +189,7 @@ export class AuthService {
 		return this.permisoRepository.save(permiso);
 	}
 
-	async findAllRolesExceptAdminUser(): Promise<Rol[]> {
+	async findAllRolesExceptAdminUsuario(): Promise<Rol[]> {
 		return this.rolRepository.find({
 			where: {
 				nombre: Not(In(['Admin', 'admin', 'Usuario', 'usuario'])),
@@ -201,7 +199,7 @@ export class AuthService {
 
 	async findUsuarioRol(): Promise<Rol | null> {
 		const rol = await this.rolRepository.findOne({
-			where: { nombre: 'usuario' },
+			where: { nombre: In(['Usuario', 'usuario']) },
 		});
 		return rol;
 	}

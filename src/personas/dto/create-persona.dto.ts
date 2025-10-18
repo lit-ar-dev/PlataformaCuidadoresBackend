@@ -16,7 +16,7 @@ export class CreatePersonaDto {
 	apellido: string;
 
 	@IsNotEmpty()
-	@IsDateString()
+	//@IsDateString()
 	fechaDeNacimiento: Date;
 
 	@IsOptional()

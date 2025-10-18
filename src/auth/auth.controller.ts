@@ -55,7 +55,7 @@ export class AuthController {
 
 	@Get('roles')
 	async getRoles() {
-		return this.authService.findAllRolesExceptAdminUser();
+		return this.authService.findAllRolesExceptAdminUsuario();
 	}
 
 	@Get('email-exists/:email')

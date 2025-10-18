@@ -19,15 +19,16 @@ export class CuidadoresController {
 	constructor(private readonly cuidadoresService: CuidadoresService) {}
 
 	@Get()
-	@UseGuards(JwtAuthGuard, RolesGuard)
-	@Roles('admin')
+	//@UseGuards(JwtAuthGuard, RolesGuard)
+	//@Roles('admin')
+	@UseGuards(JwtAuthGuard)
 	async findAll() {
 		return this.cuidadoresService.findAll();
 	}
 
 	@Get(':id')
-	@UseGuards(JwtAuthGuard, PermisosGuard)
-	@Permisos('read', 'cuidador')
+	//@UseGuards(JwtAuthGuard, PermisosGuard)
+	//@Permisos('read', 'cuidador')
 	async findOne(@Param('id') id: string) {
 		// faltan validaciones
 		return this.cuidadoresService.findOne(id);
