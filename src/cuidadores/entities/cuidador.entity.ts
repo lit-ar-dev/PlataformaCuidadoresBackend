@@ -40,8 +40,8 @@ export class Cuidador {
 	@ManyToMany(() => Tag, (tag) => tag.cuidadores)
 	@JoinTable({
 		name: 'tags_x_cuidadores',
-		joinColumn: { name: 'tagId', referencedColumnName: 'id' },
-		inverseJoinColumn: { name: 'cuidadorId', referencedColumnName: 'id' },
+		joinColumn: { name: 'cuidadorId', referencedColumnName: 'id' },
+		inverseJoinColumn: { name: 'tagId', referencedColumnName: 'id' },
 	})
 	tags: Tag[];
 }
