@@ -237,8 +237,7 @@ export class UtilidadesService {
 		}
 	}
 
-	// Forzar refresco
-	async refresh(): Promise<void> {
+	async importProvinciasAndLocalidades(): Promise<void> {
 		const base = ''; // HttpModule ya tiene baseURL
 
 		// 1) Provincias

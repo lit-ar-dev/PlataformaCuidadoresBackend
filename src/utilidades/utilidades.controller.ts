@@ -29,6 +29,13 @@ export class UtilidadesController {
 		return this.utilidadesService.createGenero(createGeneroDto);
 	}
 
+	@Post('/importar-provincias-localidades')
+	@UseGuards(JwtAuthGuard, RolesGuard)
+	@Roles('admin')
+	async importarProvinciasLocalidades() {
+		return this.utilidadesService.importProvinciasAndLocalidades();
+	}
+
 	@Post('/ciudades')
 	@UseGuards(JwtAuthGuard, RolesGuard)
 	@Roles('admin')
