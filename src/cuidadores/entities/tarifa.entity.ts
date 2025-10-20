@@ -12,17 +12,11 @@ import { Servicio } from './servicio.entity';
 
 @Entity('tarifas')
 export class Tarifa {
-	@PrimaryGeneratedColumn('uuid')
-	id: string;
+	@PrimaryGeneratedColumn()
+	id: number;
 
 	@Column()
 	precio: number;
-
-	@Column()
-	fechaDesde: Date;
-
-	@Column({ nullable: true })
-	fechaHasta: Date;
 
 	@ManyToOne(() => Grupo, (grupo) => grupo.tarifas)
 	grupo: Grupo;

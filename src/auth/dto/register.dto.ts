@@ -24,5 +24,5 @@ export class RegisterDto {
 
 	@IsNotEmpty()
 	@IsArray()
-	rolesId: number[];
+	rolesId: string[];
 }

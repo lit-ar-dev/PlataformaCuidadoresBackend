@@ -3,8 +3,8 @@ import { Cuidador } from './cuidador.entity';
 
 @Entity('tags')
 export class Tag {
-	@PrimaryGeneratedColumn('uuid')
-	id: string;
+	@PrimaryGeneratedColumn()
+	id: number;
 
 	@Column()
 	nombre: string;

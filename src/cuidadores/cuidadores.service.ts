@@ -32,63 +32,109 @@ export class CuidadoresService {
 		const cuidadorRepository = manager
 			? manager.getRepository(Cuidador)
 			: this.cuidadorRepository;
+		const tagRepository = manager
+			? manager.getRepository(Tag)
+			: this.tagRepository;
+		const servicioRepository = manager
+			? manager.getRepository(Servicio)
+			: this.servicioRepository;
+		const tarifaRepository = manager
+			? manager.getRepository(Tarifa)
+			: this.tarifaRepository;
 
-		const { tarifas, tags, ...restDto } = createCuidadorDto;
+		const { tarifas = [], tags = [], ...restDto } = createCuidadorDto;
 
 		const cuidador = cuidadorRepository.create(restDto);
 		cuidador.usuario = usuario;
 
+		if (!cuidador.tarifas) cuidador.tarifas = [];
+		if (!cuidador.tags) cuidador.tags = [];
+
 		for (const precioXServicioDto of tarifas) {
-			const { grupoId, servicios, ...precio } = precioXServicioDto;
+			const { grupoId, servicios = [], ...precio } = precioXServicioDto;
 			const grupo = await this.utilidadesService.findGrupoById(grupoId);
 
-			let tarifa = this.tarifaRepository.create(precio);
+			let tarifa = tarifaRepository.create(precio);
 			if (grupo) {
 				tarifa.grupo = grupo;
 			}
+
 			tarifa.servicios = [];
 
 			for (const servicioNombre of servicios) {
-				let servicio = await this.servicioRepository.findOne({
+				let servicio = await servicioRepository.findOne({
 					where: { nombre: servicioNombre },
 				});
 
 				if (!servicio) {
-					const newServicio = this.servicioRepository.create({
+					const newServicio = servicioRepository.create({
 						nombre: servicioNombre,
 					});
-					servicio = await this.servicioRepository.save(newServicio);
+					servicio = await servicioRepository.save(newServicio);
 				}
 				tarifa.servicios.push(servicio);
 			}
 
-			if (!cuidador.tarifas) {
-				cuidador.tarifas = [];
-			}
-			tarifa = await this.tarifaRepository.save(tarifa);
+			tarifa = await tarifaRepository.save(tarifa);
 			cuidador.tarifas.push(tarifa);
 		}
 
-		if (tags) {
-			tags.forEach(async (tag) => {
-				const tagEntity = await this.tagRepository.findOne({
-					where: { id: tag },
+		if (tags && tags.length) {
+			for (const tagNombre of tags) {
+				let tagEntity = await tagRepository.findOne({
+					where: { nombre: tagNombre },
 				});
 				if (tagEntity) {
 					cuidador.tags.push(tagEntity);
 				} else {
-					const newTag = this.tagRepository.create({ id: tag });
-					await this.tagRepository.save(newTag);
-					cuidador.tags.push(newTag);
+					const newTag = tagRepository.create({ nombre: tagNombre });
+					tagEntity = await tagRepository.save(newTag);
+					cuidador.tags.push(tagEntity);
 				}
-			});
+			}
 		}
 
-		return this.cuidadorRepository.save(cuidador);
+		return cuidadorRepository.save(cuidador);
 	}
 
 	async findAll(): Promise<Cuidador[]> {
-		return this.cuidadorRepository.find({ relations: ['reservas'] });
+		return this.cuidadorRepository.find({
+			select: {
+				descripcion: true,
+				usuario: {
+					activo: true,
+					foto: true,
+					persona: {
+						nombre: true,
+						apellido: true,
+						ciudad: {
+							nombre: true,
+						},
+					},
+				},
+				tarifas: {
+					precio: true,
+					grupo: {
+						nombre: true,
+					},
+					servicios: {
+						nombre: true,
+					},
+				},
+				tags: {
+					nombre: true,
+				},
+			},
+			relations: [
+				'usuario',
+				'usuario.persona',
+				'usuario.persona.ciudad',
+				'tags',
+				'tarifas',
+				'tarifas.servicios',
+				'tarifas.grupo',
+			],
+		});
 	}
 
 	async findOne(id: string): Promise<Cuidador> {

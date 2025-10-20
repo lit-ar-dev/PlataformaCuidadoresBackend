@@ -7,17 +7,12 @@ import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
 	const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
-	const listener = await ngrok.connect({
-		addr: port,
-		authtoken_from_env: true,
-	});
-	const baseUrl = listener.url();
+	const baseUrl = process.env.BASE_URL;
 
 	const allowlist = (process.env.ORIGIN_ALLOWLIST ?? 'http://localhost:8081')
 		.split(',')
 		.map((o) => o.trim());
 	if (baseUrl) {
-		process.env.BASE_URL = baseUrl;
 		allowlist.push(baseUrl);
 	}
 

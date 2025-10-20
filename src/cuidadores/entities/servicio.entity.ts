@@ -3,8 +3,8 @@ import { Tarifa } from './tarifa.entity';
 
 @Entity('servicios')
 export class Servicio {
-	@PrimaryGeneratedColumn('uuid')
-	id: string;
+	@PrimaryGeneratedColumn()
+	id: number;
 
 	@Column()
 	nombre: string;

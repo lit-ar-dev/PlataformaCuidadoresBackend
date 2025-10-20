@@ -74,7 +74,7 @@ export class AuthService {
 
 					for (const rol of roles) {
 						if (rol.nombre.toLowerCase() === 'cuidador') {
-							const prueba = await this.cuidadoresService.create(
+							await this.cuidadoresService.create(
 								registerDto.cuidador,
 								usuario,
 								manager,
@@ -209,7 +209,7 @@ export class AuthService {
 	}
 
 	async findRolById(
-		id: number,
+		id: string,
 		manager?: EntityManager,
 	): Promise<Rol | null> {
 		const rolRepository = manager

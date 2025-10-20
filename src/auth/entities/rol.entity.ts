@@ -10,8 +10,8 @@ import { Permiso } from './permiso.entity';
 
 @Entity('roles')
 export class Rol {
-	@PrimaryGeneratedColumn()
-	id: number;
+	@PrimaryGeneratedColumn('uuid')
+	id: string;
 
 	@Column({ unique: true })
 	nombre: string;
