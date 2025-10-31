@@ -4,8 +4,13 @@ import * as bodyParser from 'body-parser';
 import * as ngrok from '@ngrok/ngrok';
 import * as cookieParser from 'cookie-parser';
 import { ValidationPipe } from '@nestjs/common';
+import * as fs from 'fs';
 
 async function bootstrap() {
+	const uploadPath = './uploads';
+	if (!fs.existsSync(uploadPath))
+		fs.mkdirSync(uploadPath, { recursive: true });
+
 	const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 	const baseUrl = process.env.BASE_URL;
 

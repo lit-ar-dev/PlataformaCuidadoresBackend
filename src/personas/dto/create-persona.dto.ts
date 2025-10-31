@@ -1,5 +1,6 @@
+import { Type } from 'class-transformer';
 import {
-	IsDateString,
+	IsDate,
 	IsNotEmpty,
 	IsNumber,
 	IsOptional,
@@ -16,7 +17,8 @@ export class CreatePersonaDto {
 	apellido: string;
 
 	@IsNotEmpty()
-	//@IsDateString()
+	@Type(() => Date)
+	@IsDate()
 	fechaDeNacimiento: Date;
 
 	@IsOptional()

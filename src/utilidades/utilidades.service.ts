@@ -72,14 +72,16 @@ export class UtilidadesService {
 		const ciudadRepository = manager
 			? manager.getRepository(Ciudad)
 			: this.ciudadRepository;
-		return ciudadRepository.find();
+		const ciudades = await ciudadRepository.find();
+		return ciudades.sort((a, b) => a.nombre.localeCompare(b.nombre));
 	}
 
 	async findAllProvincias(manager?: EntityManager): Promise<Provincia[]> {
 		const provinciaRepository = manager
 			? manager.getRepository(Provincia)
 			: this.provinciaRepository;
-		return provinciaRepository.find();
+		const provincias = await provinciaRepository.find();
+		return provincias.sort((a, b) => a.nombre.localeCompare(b.nombre));
 	}
 
 	async findAllGrupos(manager?: EntityManager): Promise<Grupo[]> {
@@ -126,7 +128,7 @@ export class UtilidadesService {
 				`No se encontraron ciudades para la provincia con id ${provinciaId}`,
 			);
 		}
-		return ciudades;
+		return ciudades.sort((a, b) => a.nombre.localeCompare(b.nombre));
 	}
 
 	async findProvinciaById(

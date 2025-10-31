@@ -22,12 +22,8 @@ export class UsuariosService {
 		const usuarioRepository = manager
 			? manager.getRepository(Usuario)
 			: this.usuarioRepository;
-		const { foto, ...restDto } = createUsuarioDto;
-		restDto.email = restDto.email.toLowerCase();
-		const usuario = usuarioRepository.create(restDto);
-		if (foto) {
-			usuario.foto = Buffer.from(foto, 'base64');
-		}
+		createUsuarioDto.email = createUsuarioDto.email.toLowerCase();
+		const usuario = usuarioRepository.create(createUsuarioDto);
 		usuario.persona = persona;
 		if (roles) {
 			usuario.roles = roles;
@@ -53,9 +49,13 @@ export class UsuariosService {
 	async findOneWithRolesAndPerms(id: string): Promise<Usuario> {
 		const usuario = await this.usuarioRepository.findOne({
 			where: { id },
-			relations: ['roles', 'roles.permisos'],
+			relations: ['persona', 'roles', 'roles.permisos'],
 			select: {
 				id: true,
+				persona: {
+					nombre: true,
+					apellido: true,
+				},
 				email: true,
 				roles: {
 					id: true,
@@ -103,5 +103,11 @@ export class UsuariosService {
 		if (result.affected === 0) {
 			throw new NotFoundException(`Usuario con id ${id} no encontrado`);
 		}
+	}
+
+	async uploadFoto(fotoUrl: string, usuarioId: string): Promise<Usuario> {
+		const usuario = await this.findOne(usuarioId);
+		usuario.fotoUrl = fotoUrl;
+		return this.usuarioRepository.save(usuario);
 	}
 }

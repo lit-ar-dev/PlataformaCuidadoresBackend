@@ -12,6 +12,8 @@ import { ChatModule } from './chat/chat.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
 import { PersonasModule } from './personas/personas.module';
 import { UtilidadesModule } from './utilidades/utilidades.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 
 @Module({
 	imports: [
@@ -34,6 +36,10 @@ import { UtilidadesModule } from './utilidades/utilidades.module';
 				synchronize: process.env.NODE_ENV !== 'production',
 			}),
 			inject: [ConfigService],
+		}),
+		ServeStaticModule.forRoot({
+			rootPath: join(__dirname, '..', 'uploads'), // carpeta de archivos estáticos
+			serveRoot: '/uploads', // ruta pública
 		}),
 		AuthModule,
 		ClientesModule,

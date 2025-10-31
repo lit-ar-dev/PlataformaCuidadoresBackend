@@ -28,8 +28,8 @@ export class Usuario {
 	@Column({ default: true })
 	activo: boolean;
 
-	@Column({ type: 'bytea', nullable: true })
-	foto?: Buffer;
+	@Column({ type: 'varchar', nullable: true })
+	fotoUrl?: string | null;
 
 	@OneToOne(() => Persona, (persona) => persona.usuario)
 	@JoinColumn()

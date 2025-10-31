@@ -143,7 +143,7 @@ export class GoogleAuthService {
 			usuario = await this.usuariosService.create(
 				{
 					email,
-					foto: payload.picture ?? undefined,
+					//fotoUrl: payload.picture ?? undefined,
 				},
 				persona,
 				rolUsuario ? [rolUsuario] : [],

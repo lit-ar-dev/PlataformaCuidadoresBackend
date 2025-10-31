@@ -1,8 +1,8 @@
 import {
-	IsBase64,
 	IsEmail,
 	IsNotEmpty,
 	IsOptional,
+	IsString,
 	MinLength,
 } from 'class-validator';
 
@@ -14,8 +14,4 @@ export class CreateUsuarioDto {
 	@IsOptional()
 	@MinLength(6)
 	contraseña?: string;
-
-	@IsOptional()
-	@IsBase64()
-	foto?: string;
 }

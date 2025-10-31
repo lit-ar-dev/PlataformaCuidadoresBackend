@@ -7,22 +7,21 @@ import {
 	Query,
 	Res,
 	BadRequestException,
-	Req,
-	UnauthorizedException,
+	UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { GoogleAuthService } from './google-auth-service';
 import { Response } from 'express';
-import { JwtService } from '@nestjs/jwt';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { CurrentUsuario } from './guards/current-usuario.guard';
 
 @Controller('auth')
 export class AuthController {
 	constructor(
 		private readonly authService: AuthService,
 		private readonly googleAuthService: GoogleAuthService,
-		private readonly jwtService: JwtService,
 	) {}
 
 	@Post('register')
@@ -36,21 +35,21 @@ export class AuthController {
 		return this.authService.login(loginDto);
 	}
 
+	@UseGuards(JwtAuthGuard)
 	@Get('me')
-	async me(@Req() req) {
-		try {
-			const token = req.cookies?.session;
-			if (!token) {
-				throw new UnauthorizedException('Token inválido o expirado');
-			}
-
-			// verify lanza si el token es inválido/expirado
-			const payload = this.jwtService.verify(token);
-
-			return { ok: true, exp: payload.exp, iat: payload.iat };
-		} catch (err) {
-			throw new UnauthorizedException('Token inválido o expirado');
-		}
+	async me(
+		@CurrentUsuario()
+		usuario: {
+			id: string;
+			nombre: string;
+			email: string;
+		},
+	) {
+		return {
+			id: usuario.id,
+			nombre: usuario.nombre,
+			email: usuario.email,
+		};
 	}
 
 	@Get('roles')
@@ -60,6 +59,7 @@ export class AuthController {
 
 	@Get('email-exists/:email')
 	async emailExists(@Param('email') email: string) {
+		if (!email) throw new BadRequestException('Email inválido');
 		return this.authService.emailExists(email.toLowerCase());
 	}
 
