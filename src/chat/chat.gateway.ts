@@ -9,7 +9,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
-import { CreateMensajeDto } from './dto/create-mensaje.dto';
+import { CreateMessageDto } from './dto/create-message.dto';
 
 @WebSocketGateway({ namespace: '/chat', cors: true })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -19,42 +19,42 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 	constructor(private readonly chatService: ChatService) {}
 
 	handleConnection(client: Socket) {
-		// aquí puedes validar token y obtener userId
-		console.log(`Cliente conectado: ${client.id}`);
+		// here you can validate token and obtain userId
+		console.log(`Client connected: ${client.id}`);
 	}
 
 	handleDisconnect(client: Socket) {
-		console.log(`Cliente desconectado: ${client.id}`);
+		console.log(`Client disconnected: ${client.id}`);
 	}
 
-	@SubscribeMessage('joinSala')
-	async onJoinSala(
-		@MessageBody() payload: { salaId: string },
+	@SubscribeMessage('joinRoom')
+	async onJoinRoom(
+		@MessageBody() payload: { roomId: string },
 		@ConnectedSocket() client: Socket,
 	) {
-		client.join(payload.salaId);
-		// opcional: notificar al resto
+		client.join(payload.roomId);
+		// optional: notify others
 		this.server
-			.to(payload.salaId)
+			.to(payload.roomId)
 			.emit('userJoined', { userId: client.id });
 	}
 
-	@SubscribeMessage('leaveSala')
-	async onLeaveSala(
-		@MessageBody() payload: { salaId: string },
+	@SubscribeMessage('leaveRoom')
+	async onLeaveRoom(
+		@MessageBody() payload: { roomId: string },
 		@ConnectedSocket() client: Socket,
 	) {
-		client.leave(payload.salaId);
+		client.leave(payload.roomId);
 	}
 
-	@SubscribeMessage('sendMensaje')
-	async onSendMensaje(
-		@MessageBody() dto: CreateMensajeDto,
+	@SubscribeMessage('sendMessage')
+	async onSendMessage(
+		@MessageBody() dto: CreateMessageDto,
 		@ConnectedSocket() client: Socket,
 	) {
-		// Persistir mensaje en BD
-		const message = await this.chatService.saveMensaje(dto);
-		// Emitir a todos en la sala
-		this.server.to(dto.salaId).emit('newMensaje', message);
+		// Persist message in DB
+		const message = await this.chatService.saveMessage(dto);
+		// Emit to everyone in the room
+		this.server.to(dto.roomId).emit('newMessage', message);
 	}
 }

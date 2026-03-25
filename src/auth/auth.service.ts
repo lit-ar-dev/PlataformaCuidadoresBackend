@@ -1,5 +1,5 @@
-import { ClientesService } from './../clientes/clientes.service';
-import { CuidadoresService } from './../cuidadores/cuidadores.service';
+import { ClientsService } from './../clients/clients.service';
+import { CaregiversService } from './../caregivers/caregivers.service';
 import {
 	ConflictException,
 	Injectable,
@@ -12,13 +12,13 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-import { Usuario } from 'src/usuarios/entities/usuario.entity';
-import { UsuariosService } from 'src/usuarios/usuarios.service';
-import { PersonasService } from 'src/personas/personas.service';
-import { Rol } from './entities/rol.entity';
-import { Permiso } from './entities/permiso.entity';
-import { CreateRolDto } from './dto/create-rol.dto';
-import { CreatePermisoDto } from './dto/create-permiso.dto';
+import { User } from 'src/users/entities/user.entity';
+import { UsersService } from 'src/users/users.service';
+import { PersonsService } from 'src/persons/persons.service';
+import { Role } from './entities/role.entity';
+import { Permission } from './entities/permission.entity';
+import { CreateRoleDto } from './dto/create-role.dto';
+import { CreatePermissionDto } from './dto/create-permission.dto';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -26,116 +26,116 @@ export class AuthService {
 	private otcStore = new Map<string, { token: string; expiresAt: number }>();
 	constructor(
 		private readonly dataSource: DataSource,
-		@InjectRepository(Rol)
-		private readonly rolRepository: Repository<Rol>,
-		@InjectRepository(Usuario)
-		private readonly usuarioRepository: Repository<Usuario>,
-		@InjectRepository(Permiso)
-		private readonly permisoRepository: Repository<Permiso>,
-		private readonly usuariosService: UsuariosService,
-		private readonly personasService: PersonasService,
+		@InjectRepository(Role)
+		private readonly roleRepository: Repository<Role>,
+		@InjectRepository(User)
+		private readonly userRepository: Repository<User>,
+		@InjectRepository(Permission)
+		private readonly permissionRepository: Repository<Permission>,
+		private readonly usersService: UsersService,
+		private readonly personsService: PersonsService,
 		private readonly jwtService: JwtService,
-		private readonly cuidadoresService: CuidadoresService,
-		private readonly clientesService: ClientesService,
+		private readonly caregiversService: CaregiversService,
+		private readonly clientsService: ClientsService,
 	) {}
 
 	async register(registerDto: RegisterDto): Promise<{ token: string }> {
 		try {
 			const result = await this.dataSource.transaction(
 				async (manager) => {
-					const usuarioRepository = manager.getRepository(Usuario);
-					const existing = await usuarioRepository.findOne({
-						where: { email: registerDto.usuario.email },
+					const userRepository = manager.getRepository(User);
+					const existing = await userRepository.findOne({
+						where: { email: registerDto.user.email },
 					});
 					if (existing)
 						throw new UnauthorizedException(
-							'El correo ya está registrado',
+							'Email is already registered',
 						);
 
-					const persona = await this.personasService.create(
-						registerDto.persona,
+					const person = await this.personsService.create(
+						registerDto.person,
 						manager,
 					);
 
 					const roles = await Promise.all(
-						registerDto.rolesId.map((id) =>
-							this.findRolById(id, manager),
+						registerDto.roleIds.map((id) =>
+							this.findRoleById(id, manager),
 						),
-					).then((rs) => rs.filter((r): r is Rol => !!r));
+					).then((rs) => rs.filter((r): r is Role => !!r));
 
-					roles.push((await this.findUsuarioRol()) as Rol);
+					roles.push((await this.findUserRole()) as Role);
 
-					const usuario = await this.usuariosService.create(
-						registerDto.usuario,
-						persona,
+					const user = await this.usersService.create(
+						registerDto.user,
+						person,
 						roles,
 						manager,
 					);
 
-					for (const rol of roles) {
-						if (rol.nombre.toLowerCase() === 'cuidador') {
-							await this.cuidadoresService.create(
-								registerDto.cuidador,
-								usuario,
+					for (const role of roles) {
+						if (role.name.toLowerCase() === 'caregiver') {
+							await this.caregiversService.create(
+								registerDto.caregiver,
+								user,
 								manager,
 							);
-						} else if (rol.nombre.toLowerCase() === 'cliente') {
-							await this.clientesService.create(
-								registerDto.cliente,
-								usuario,
+						} else if (role.name.toLowerCase() === 'client') {
+							await this.clientsService.create(
+								registerDto.client,
+								user,
 								manager,
 							);
 						}
 					}
 
-					return usuario;
+					return user;
 				},
 			);
 
 			const payload = {
 				sub: result.id,
-				roles: result.roles?.map((r) => r.nombre),
+				roles: result.roles?.map((r) => r.name),
 			};
 			const token = this.jwtService.sign(payload);
 			return { token };
 		} catch (err: any) {
 			if (err?.code === '23505') {
-				throw new ConflictException('Registro único duplicado');
+				throw new ConflictException('Duplicate unique registration');
 			}
 			throw err;
 		}
 	}
 
-	async validateUsuario(
+	async validateUser(
 		email: string,
-		contraseña: string,
-	): Promise<Usuario | null> {
-		const usuario = await this.usuarioRepository.findOne({
+		password: string,
+	): Promise<User | null> {
+		const user = await this.userRepository.findOne({
 			where: { email },
 		});
-		if (!usuario) return null;
-		if (!usuario.contraseña) return null;
-		const valid = await bcrypt.compare(contraseña, usuario.contraseña);
-		if (valid) return usuario;
+		if (!user) return null;
+		if (!user.password) return null;
+		const valid = await bcrypt.compare(password, user.password);
+		if (valid) return user;
 		return null;
 	}
 
 	async login(loginDto: LoginDto): Promise<{ token: string }> {
-		const { email, contraseña } = loginDto;
-		const usuario = await this.validateUsuario(email, contraseña);
-		if (!usuario) {
-			throw new UnauthorizedException('Credenciales inválidas');
+		const { email, password } = loginDto;
+		const user = await this.validateUser(email, password);
+		if (!user) {
+			throw new UnauthorizedException('Invalid credentials');
 		}
-		const payload = { sub: usuario.id, roles: usuario.roles };
+		const payload = { sub: user.id, roles: user.roles };
 		const token = this.jwtService.sign(payload);
 		return { token };
 	}
 
 	async emailExists(email: string): Promise<boolean> {
-		const usuario = await this.usuarioRepository.findOne({
+		const user = await this.userRepository.findOne({
 			where: { email },
 		});
-		return !!usuario;
+		return !!user;
 	}
 
 	isAllowedRedirect(redirectUri: string) {
@@ -167,88 +167,88 @@ export class AuthService {
 		return entry.token;
 	}
 
-	async createRol(createRolDto: CreateRolDto): Promise<Rol> {
-		const rol = this.rolRepository.create(createRolDto);
-		return this.rolRepository.save(rol);
+	async createRole(createRoleDto: CreateRoleDto): Promise<Role> {
+		const role = this.roleRepository.create(createRoleDto);
+		return this.roleRepository.save(role);
 	}
 
-	async createPermiso(createPermisoDto: CreatePermisoDto): Promise<Permiso> {
-		const permiso = this.permisoRepository.create(createPermisoDto);
-		if (!permiso.roles) {
-			permiso.roles = [];
+	async createPermission(createPermissionDto: CreatePermissionDto): Promise<Permission> {
+		const permission = this.permissionRepository.create(createPermissionDto);
+		if (!permission.roles) {
+			permission.roles = [];
 		}
-		for (const rolId of createPermisoDto.rolesId) {
-			const rol = await this.findRolById(rolId);
-			if (!rol) {
+		for (const roleId of createPermissionDto.roleIds) {
+			const role = await this.findRoleById(roleId);
+			if (!role) {
 				throw new NotFoundException(
-					`Rol con id ${rolId} no encontrado`,
+					`Role with id ${roleId} not found`,
 				);
 			}
-			permiso.roles.push(rol);
+			permission.roles.push(role);
 		}
-		return this.permisoRepository.save(permiso);
+		return this.permissionRepository.save(permission);
 	}
 
-	async findAllRolesExceptAdminUsuario(): Promise<Rol[]> {
-		return this.rolRepository.find({
+	async findAllRolesExceptAdminUser(): Promise<Role[]> {
+		return this.roleRepository.find({
 			where: {
-				nombre: Not(In(['Admin', 'admin', 'Usuario', 'usuario'])),
+				name: Not(In(['Admin', 'admin', 'User', 'user'])),
 			},
 		});
 	}
 
-	async findUsuarioRol(): Promise<Rol | null> {
-		const rol = await this.rolRepository.findOne({
-			where: { nombre: In(['Usuario', 'usuario']) },
+	async findUserRole(): Promise<Role | null> {
+		const role = await this.roleRepository.findOne({
+			where: { name: In(['User', 'user']) },
 		});
-		return rol;
+		return role;
 	}
 
-	async findAllPermisos(): Promise<Permiso[]> {
-		return this.permisoRepository.find();
+	async findAllPermissions(): Promise<Permission[]> {
+		return this.permissionRepository.find();
 	}
 
-	async findRolById(
+	async findRoleById(
 		id: string,
 		manager?: EntityManager,
-	): Promise<Rol | null> {
-		const rolRepository = manager
-			? manager.getRepository(Rol)
-			: this.rolRepository;
+	): Promise<Role | null> {
+		const roleRepository = manager
+			? manager.getRepository(Role)
+			: this.roleRepository;
 
-		const rol = await rolRepository.findOne({ where: { id } });
-		if (!rol) {
-			throw new NotFoundException(`Rol con id ${id} no encontrado`);
+		const role = await roleRepository.findOne({ where: { id } });
+		if (!role) {
+			throw new NotFoundException(`Role with id ${id} not found`);
 		}
-		return rol;
+		return role;
 	}
 
-	async findPermisoById(
+	async findPermissionById(
 		id: number,
 		manager?: EntityManager,
-	): Promise<Permiso | null> {
-		const permisoRepository = manager
-			? manager.getRepository(Permiso)
-			: this.permisoRepository;
+	): Promise<Permission | null> {
+		const permissionRepository = manager
+			? manager.getRepository(Permission)
+			: this.permissionRepository;
 
-		const permiso = await permisoRepository.findOne({ where: { id } });
-		if (!permiso) {
-			throw new NotFoundException(`Permiso con id ${id} no encontrado`);
+		const permission = await permissionRepository.findOne({ where: { id } });
+		if (!permission) {
+			throw new NotFoundException(`Permission with id ${id} not found`);
 		}
-		return permiso;
+		return permission;
 	}
 
-	async removeRol(id: number): Promise<void> {
-		const result = await this.rolRepository.delete(id);
+	async removeRole(id: number): Promise<void> {
+		const result = await this.roleRepository.delete(id);
 		if (result.affected === 0) {
-			throw new NotFoundException(`Rol con id ${id} no encontrado`);
+			throw new NotFoundException(`Role with id ${id} not found`);
 		}
 	}
 
-	async removePermiso(id: number): Promise<void> {
-		const result = await this.permisoRepository.delete(id);
+	async removePermission(id: number): Promise<void> {
+		const result = await this.permissionRepository.delete(id);
 		if (result.affected === 0) {
-			throw new NotFoundException(`Permiso con id ${id} no encontrado`);
+			throw new NotFoundException(`Permission with id ${id} not found`);
 		}
 	}
 }

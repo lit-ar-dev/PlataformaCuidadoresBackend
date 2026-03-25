@@ -1,10 +1,10 @@
 import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { OAuth2Client, OAuth2ClientOptions } from 'google-auth-library';
-import { UsuariosService } from 'src/usuarios/usuarios.service';
-import { PersonasService } from 'src/personas/personas.service';
+import { UsersService } from 'src/users/users.service';
+import { PersonsService } from 'src/persons/persons.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { Usuario } from 'src/usuarios/entities/usuario.entity';
+import { User } from 'src/users/entities/user.entity';
 import { AuthService } from './auth.service';
 import * as crypto from 'crypto';
 
@@ -16,8 +16,8 @@ export class GoogleAuthService {
 	private redirectUri: string;
 
 	constructor(
-		private readonly usuariosService: UsuariosService,
-		private readonly personasService: PersonasService,
+		private readonly usersService: UsersService,
+		private readonly personsService: PersonsService,
 		private readonly jwtService: JwtService,
 		private readonly configService: ConfigService,
 		private readonly authService: AuthService,
@@ -61,7 +61,7 @@ export class GoogleAuthService {
 		client: 'web' | 'mobile';
 		redirectUri: string;
 	}) {
-		// state: firmar JSON con HMAC para evitar manipulación
+		// state: sign JSON with HMAC to prevent tampering
 		const stateObj = {
 			nonce: crypto.randomBytes(16).toString('hex'),
 			ts: Date.now(),
@@ -82,19 +82,19 @@ export class GoogleAuthService {
 	}
 
 	async verifyIdToken(idToken: string) {
-		// Verifica con google-auth-library
+		// Verify with google-auth-library
 		const ticket = await this.client.verifyIdToken({
 			idToken,
-			audience: this.client._clientId, // o config.GOOGLE_CLIENT_ID
+			audience: this.client._clientId, // or config.GOOGLE_CLIENT_ID
 		});
 		const payload = ticket.getPayload();
 		if (!payload)
 			throw new UnauthorizedException('Invalid Google token payload');
-		return payload; // contiene email, name, picture, sub, etc.
+		return payload; // contains email, name, picture, sub, etc.
 	}
 
 	/**
-	 * Valida/crea usuario a partir del payload de Google y retorna un JWT propio
+	 * Validates/creates user from Google payload and returns an internal JWT
 	 */
 	async loginOrCreateFromGoogle(
 		code: string,
@@ -105,9 +105,9 @@ export class GoogleAuthService {
 			Buffer.from(state, 'base64url').toString(),
 		);
 		console.log('Decoded state:', stateJson);
-		// opcional: validate ts, nonce, etc.
+		// optional: validate ts, nonce, etc.
 
-		// exchange code por tokens
+		// exchange code for tokens
 		const r = await this.client.getToken({
 			code,
 			redirect_uri: this.redirectUri,
@@ -123,43 +123,43 @@ export class GoogleAuthService {
 			throw new UnauthorizedException('Google token has no email');
 		}
 
-		let usuario: Usuario | null = null;
+		let user: User | null = null;
 
 		try {
-			usuario = await this.usuariosService.findByEmail(email);
-			console.log('Found existing user by email:', usuario);
+			user = await this.usersService.findByEmail(email);
+			console.log('Found existing user by email:', user);
 		} catch (error) {
 			console.log('User not found, will create new:', error);
-			const persona = await this.personasService.create({
-				nombre: payload.given_name ?? payload.name ?? 'Sin nombre',
-				apellido: payload.family_name ?? ' ',
-				fechaDeNacimiento: new Date(),
-				ciudadId: 1,
+			const person = await this.personsService.create({
+				name: payload.given_name ?? payload.name ?? 'No name',
+				lastName: payload.family_name ?? ' ',
+				birthDate: new Date(),
+				cityId: 1,
 			});
-			console.log('Created new persona from Google auth:', persona);
+			console.log('Created new person from Google auth:', person);
 
-			const rolUsuario = await this.authService.findUsuarioRol();
+			const roleUser = await this.authService.findUserRole();
 
-			usuario = await this.usuariosService.create(
+			user = await this.usersService.create(
 				{
 					email,
-					//fotoUrl: payload.picture ?? undefined,
+					//photoUrl: payload.picture ?? undefined,
 				},
-				persona,
-				rolUsuario ? [rolUsuario] : [],
+				person,
+				roleUser ? [roleUser] : [],
 			);
-			console.log('Created new user from Google auth:', usuario);
+			console.log('Created new user from Google auth:', user);
 		}
 
-		if (!usuario) {
+		if (!user) {
 			throw new UnauthorizedException(
-				'No se pudo crear o encontrar el usuario',
+				'Could not create or find the user',
 			);
 		}
 
 		const jwtPayload = {
-			sub: usuario.id,
-			roles: usuario.roles?.map((r) => r.nombre) ?? [],
+			sub: user.id,
+			roles: user.roles?.map((r) => r.name) ?? [],
 		};
 		const token = this.jwtService.sign(jwtPayload);
 		return {

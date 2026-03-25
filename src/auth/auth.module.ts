@@ -6,19 +6,19 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './jwt.strategy';
-import { Usuario } from 'src/usuarios/entities/usuario.entity';
-import { Rol } from './entities/rol.entity';
-import { UsuariosModule } from 'src/usuarios/usuarios.module';
-import { PersonasModule } from 'src/personas/personas.module';
-import { CuidadoresModule } from 'src/cuidadores/cuidadores.module';
-import { ClientesModule } from 'src/clientes/clientes.module';
+import { User } from 'src/users/entities/user.entity';
+import { Role } from './entities/role.entity';
+import { UsersModule } from 'src/users/users.module';
+import { PersonsModule } from 'src/persons/persons.module';
+import { CaregiversModule } from 'src/caregivers/caregivers.module';
+import { ClientsModule } from 'src/clients/clients.module';
 import { AbilityFactory } from './ability.factory';
-import { Permiso } from './entities/permiso.entity';
+import { Permission } from './entities/permission.entity';
 import { GoogleAuthService } from './google-auth-service';
 
 @Module({
 	imports: [
-		TypeOrmModule.forFeature([Usuario, Rol, Permiso]),
+		TypeOrmModule.forFeature([User, Role, Permission]),
 		PassportModule,
 		JwtModule.registerAsync({
 			imports: [ConfigModule],
@@ -39,10 +39,10 @@ import { GoogleAuthService } from './google-auth-service';
 			},
 			inject: [ConfigService],
 		}),
-		UsuariosModule,
-		PersonasModule,
-		forwardRef(() => CuidadoresModule),
-		ClientesModule,
+		UsersModule,
+		PersonsModule,
+		forwardRef(() => CaregiversModule),
+		ClientsModule,
 		ConfigModule,
 	],
 	providers: [AuthService, JwtStrategy, AbilityFactory, GoogleAuthService],

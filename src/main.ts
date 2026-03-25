@@ -14,7 +14,7 @@ async function bootstrap() {
 	const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 	const baseUrl = process.env.BASE_URL;
 
-	const allowlist = (process.env.ORIGIN_ALLOWLIST ?? 'http://localhost:8081')
+	const allowlist = (process.env.ORIGIN_ALLOWLIST ?? 'http://localhost:5173')
 		.split(',')
 		.map((o) => o.trim());
 	if (baseUrl) {
@@ -38,23 +38,23 @@ async function bootstrap() {
 			if (!origin) return callback(null, true);
 
 			if (allowlist.includes(origin)) {
-				// IMPORTANTE: pasar el string origin para que la respuesta ponga
-				// Access-Control-Allow-Origin: <origin> (no '*')
+				// IMPORTANT: pass the exact origin string so the response sets
+				// Access-Control-Allow-Origin: <origin> (not '*')
 				callback(null, origin);
 			} else {
 				callback(new Error('Not allowed by CORS'));
 			}
 		},
-		credentials: true, // permite enviar cookies
+		credentials: true, // allow sending cookies
 	});
 
 	app.useGlobalPipes(
 		new ValidationPipe({
-			whitelist: true, // borra campos que no estén en el DTO
-			forbidNonWhitelisted: true, // lanza error si mandan campos extra
-			transform: true, // convierte a instancia DTO
+			whitelist: true, // remove fields not present in DTO
+			forbidNonWhitelisted: true, // throw error on extra fields
+			transform: true, // transform into DTO instance
 			transformOptions: {
-				enableImplicitConversion: true, // convierte strings a number/bool
+				enableImplicitConversion: true, // convert strings to number/bool
 			},
 		}),
 	);

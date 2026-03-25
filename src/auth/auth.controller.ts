@@ -15,7 +15,7 @@ import { LoginDto } from './dto/login.dto';
 import { GoogleAuthService } from './google-auth-service';
 import { Response } from 'express';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { CurrentUsuario } from './guards/current-usuario.guard';
+import { CurrentUser } from './guards/current-user.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -38,28 +38,28 @@ export class AuthController {
 	@UseGuards(JwtAuthGuard)
 	@Get('me')
 	async me(
-		@CurrentUsuario()
-		usuario: {
+		@CurrentUser()
+		user: {
 			id: string;
-			nombre: string;
+			name: string;
 			email: string;
 		},
 	) {
 		return {
-			id: usuario.id,
-			nombre: usuario.nombre,
-			email: usuario.email,
+			id: user.id,
+			name: user.name,
+			email: user.email,
 		};
 	}
 
 	@Get('roles')
 	async getRoles() {
-		return this.authService.findAllRolesExceptAdminUsuario();
+		return this.authService.findAllRolesExceptAdminUser();
 	}
 
 	@Get('email-exists/:email')
 	async emailExists(@Param('email') email: string) {
-		if (!email) throw new BadRequestException('Email inválido');
+		if (!email) throw new BadRequestException('Invalid email');
 		return this.authService.emailExists(email.toLowerCase());
 	}
 
@@ -71,7 +71,7 @@ export class AuthController {
 	) {
 		console.log('Start Google Auth', { client, redirectUri });
 		if (!client) client = 'web';
-		// valida redirect_uri (allowlist)
+		// validate redirect_uri (allowlist)
 		if (!this.authService.isAllowedRedirect(redirectUri)) {
 			throw new BadRequestException('redirect_uri not allowed');
 		}
@@ -79,8 +79,8 @@ export class AuthController {
 			client,
 			redirectUri,
 		});
-		// guarda state (opcional) o firmalo para verificar luego
-		// redirige a google
+		// store state (optional) or sign it for later verification
+		// redirect to Google
 		return res.redirect(url);
 	}
 
@@ -91,7 +91,7 @@ export class AuthController {
 		@Res() res: Response,
 	) {
 		console.log('Google callback', { code, state });
-		// validar state (nonce, redirectUri, etc) -> la service hace decode+verify
+		// validate state (nonce, redirectUri, etc.) -> service performs decode+verify
 		const payload = await this.googleAuthService.loginOrCreateFromGoogle(
 			code,
 			state,
@@ -108,9 +108,9 @@ export class AuthController {
 			});
 			return res.redirect(redirectUri || '/');
 		} else {
-			// mobile: generamos one-time-code
+			// mobile: generate one-time-code
 			const otc = await this.authService.createOneTimeCodeForToken(token);
-			// redirect a scheme: redirectUri puede ser myapp://auth/callback
+			// redirect a scheme: redirectUri can be myapp://auth/callback
 			const redirectTo = `${redirectUri}${redirectUri.includes('?') ? '&' : '?'}otc=${encodeURIComponent(otc)}`;
 			return res.redirect(redirectTo);
 		}
