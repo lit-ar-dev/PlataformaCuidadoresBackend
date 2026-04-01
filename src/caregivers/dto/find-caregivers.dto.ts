@@ -69,7 +69,7 @@ export class FindCaregiversDto {
 	@Type(() => Number)
 	@IsInt()
 	@Min(0)
-	maxRating?: number;
+	maxRating?: number; */
 
 	@IsOptional()
 	@Type(() => Number)
@@ -84,7 +84,7 @@ export class FindCaregiversDto {
 	@Max(100)
 	limit?: number = 20;
 
-	@IsOptional()
+	/* @IsOptional()
 	@IsIn(ALLOWED_SORT)
 	sort?: string = 'createdAt';
 

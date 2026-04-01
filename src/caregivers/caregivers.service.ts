@@ -100,18 +100,22 @@ export class CaregiversService {
 	}
 
 	async findAll(filters: FindCaregiversDto) {
-		// 1) Use QueryBuilder to filter and paginate, selecting only ids
+		// 1. Configure base pagination
+		const itemsPerPage = Math.min(filters.limit ?? 20, 100);
+    	const currentPage = Math.max(filters.page ?? 1, 1);
+
+		// 2. Use QueryBuilder to filter and paginate, selecting only ids
 		const qb = this.caregiverRepository
 			.createQueryBuilder('c')
 			.leftJoin('c.user', 'u')
 			.leftJoin('u.person', 'p')
 			.leftJoin('p.city', 'city')
 			.leftJoin('city.province', 'province')
+			.leftJoin('p.gender', 'gender')
 			.leftJoin('c.tags', 'tag')
 			.leftJoin('c.rates', 'r')
 			.leftJoin('r.group', 'g')
-			.leftJoin('r.services', 'srv')
-			.leftJoin('p.gender', 'gender');
+			.leftJoin('r.services', 'srv');
 
 		if (filters.name) {
 			const name = `%${filters.name.toLowerCase()}%`;
@@ -173,26 +177,36 @@ export class CaregiversService {
 			qb.andWhere('g.id IN (:...groups)', { groups: filters.groups });
 		}
 
-		qb.select('c.id', 'id') // <-- only ids are selected in this query
-			.distinct(true);
+		// 3. CLONE the QueryBuilder to get the total BEFORE paginating
+		// Count distinct caregivers to avoid duplicates from JOINs
+    	const totalCountQb = qb.clone();
+    	const rawTotal = await totalCountQb.select('COUNT(DISTINCT c.id)', 'count').getRawOne();
+    	const totalItems = Number(rawTotal.count);
 
-		// order/pagination for the id list
-		/* const limit = Math.min(filters.limit ?? 20, 100);
-		const page = Math.max(filters.page ?? 1, 1);
-		qb.orderBy('c.createdAt', 'DESC')
-			.take(limit)
-			.skip((page - 1) * limit);*/
+		// 4. Calculate total pages
+		const totalPages = Math.ceil(totalItems / itemsPerPage);
 
-		// fetch rows with ids
-		const rawIds = await qb.getRawMany(); // [{ id: 1 }, { id: 2 }, ...]
-		const ids = rawIds.map((r) => r.id);
-
-		if (ids.length === 0) {
-			// return { data: [], meta: { total: 0, page, limit } };
-			return { data: [], meta: { total: 0 } };
+		// If there are no results, return early with correct metadata
+		if (totalItems === 0) {
+			return {
+				data: [],
+				meta: { totalItems, itemCount: 0, itemsPerPage, totalPages, currentPage }
+			};
 		}
 
-		// 2) Fetch only required columns/relations using repository.find()
+		// 5. Apply SELECT, ordering and pagination to the original query
+		qb.select('c.id', 'id')
+			.addSelect('p.name', 'name') // Necessary for DISTINCT
+			.distinct(true)
+			.orderBy('p.name', 'DESC')
+			.limit(itemsPerPage)
+			.offset((currentPage - 1) * itemsPerPage);
+
+		// 6. Fetch rows with ids
+		const rawIds = await qb.getRawMany();  // [{ id: 1 }, { id: 2 }, ...]
+    	const ids = rawIds.map((r) => r.id);
+
+		// 7. Fetch only required columns/relations using repository.find()
 		const data = await this.caregiverRepository.find({
 			where: { id: In(ids) },
 			select: {
@@ -219,8 +233,9 @@ export class CaregiversService {
 			relations: [
 				'user',
 				'user.person',
-				'user.person.gender',
 				'user.person.city',
+				'user.person.city.province',
+				'user.person.gender',
 				'tags',
 				'rates',
 				'rates.services',
@@ -228,22 +243,12 @@ export class CaregiversService {
 			],
 		});
 
-		// optional: keep `data` ordered like the original `ids` sequence
+		// 8. Keep `data` ordered like the original `ids` sequence
 		const dataOrdered = ids
 			.map((id) => data.find((d) => d.id === id))
 			.filter(Boolean);
 
-		// total: if you want the global total (without pagination), run a separate count with the same filters
-		const totalQb = this.caregiverRepository
-			.createQueryBuilder('c')
-			.leftJoin('c.user', 'u')
-			.leftJoin('u.person', 'p')
-			.leftJoin('p.city', 'city');
-		// apply the same filters as above...
-		const total = await totalQb.getCount();
-
-		//return { data: dataOrdered, meta: { total, page, limit } };
-		return { data: dataOrdered, meta: { total } };
+		return { data: dataOrdered, meta: { totalItems, itemCount: dataOrdered.length, itemsPerPage, totalPages, currentPage } };
 	}
 
 	/*async findAll(filters: FindCaregiversDto): Promise<Caregiver[]> {
@@ -295,6 +300,7 @@ export class CaregiversService {
 				training: true,
 				experience: true,
 				user: {
+					createdAt: true,
 					active: true,
 					photoUrl: true,
 					person: {
@@ -333,6 +339,10 @@ export class CaregiversService {
 		if (!caregiver) {
 			throw new NotFoundException(`Caregiver with id ${id} not found`);
 		}
+		if (caregiver.user.person.birthDate) {
+			const age = calculateAge(new Date(caregiver.user.person.birthDate));
+			(caregiver.user.person as any).age = age;
+		}
 		return caregiver;
 	}
 
@@ -360,4 +370,14 @@ function subYears(date: Date, years: number): Date {
 	const newDate = new Date(date.getTime());
 	newDate.setFullYear(newDate.getFullYear() - years);
 	return newDate;
+}
+
+function calculateAge(birthDate: Date): number {
+	const today = new Date();
+	let age = today.getFullYear() - birthDate.getFullYear();
+	const m = today.getMonth() - birthDate.getMonth();
+	if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+		age--;
+	}
+	return age;
 }

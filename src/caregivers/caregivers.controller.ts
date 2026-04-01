@@ -24,6 +24,7 @@ export class CaregiversController {
 	//@UseGuards(JwtAuthGuard, RolesGuard)
 	//@Roles('admin')
 	async findAll(@Query() filters: FindCaregiversDto) {
+		console.log('Received filters:', filters);
 		return this.caregiversService.findAll(filters);
 	}
 

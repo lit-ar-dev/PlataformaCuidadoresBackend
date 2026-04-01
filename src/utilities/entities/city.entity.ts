@@ -27,5 +27,4 @@ export class City {
 
 	@ManyToOne(() => Province, (province) => province.cities)
 	province?: Province;
-	city: Promise<Province | null>;
 }
