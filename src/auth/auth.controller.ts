@@ -22,7 +22,7 @@ export class AuthController {
 	constructor(
 		private readonly authService: AuthService,
 		private readonly googleAuthService: GoogleAuthService,
-	) {}
+	) { }
 
 	@Post('register')
 	async register(@Body() registerDto: RegisterDto) {
@@ -32,6 +32,7 @@ export class AuthController {
 
 	@Post('login')
 	async login(@Body() loginDto: LoginDto) {
+		console.log('Login DTO:', loginDto);
 		return this.authService.login(loginDto);
 	}
 
