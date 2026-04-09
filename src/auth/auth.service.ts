@@ -37,7 +37,7 @@ export class AuthService {
 		private readonly jwtService: JwtService,
 		private readonly caregiversService: CaregiversService,
 		private readonly clientsService: ClientsService,
-	) {}
+	) { }
 
 	async register(registerDto: RegisterDto): Promise<{ token: string }> {
 		try {
@@ -114,6 +114,7 @@ export class AuthService {
 			where: { email },
 		});
 		if (!user) return null;
+		if (!user.active) return user; // testing WARNING! remove in prod or handle properly
 		if (!user.password) return null;
 		const valid = await bcrypt.compare(password, user.password);
 		if (valid) return user;
